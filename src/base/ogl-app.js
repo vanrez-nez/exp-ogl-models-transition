@@ -1,6 +1,10 @@
 import { Renderer, Camera, Transform, Orbit } from 'ogl';
 import Clock from './clock';
 
+const CAMERA_FOV = 45;
+const CAMERA_NEAR = 0.1;
+const CAMERA_FAR = 1000;
+
 const NOOP = () => {};
 
 function toLocalCoords(domElement, mouseEvent) {
@@ -12,6 +16,7 @@ function toLocalCoords(domElement, mouseEvent) {
 
 export default class OGLApp {
   constructor({
+    canvas,
     target = document.body,
     pixelRatio = window.devicePixelRatio,
     autoResize = true,
@@ -33,19 +38,27 @@ export default class OGLApp {
     this.clock = new Clock();
 
     // Renderer
-    const renderer = new Renderer({ dpr: pixelRatio, alpha: transparent });
+    const renderer = new Renderer({
+      antialias: true,
+      dpr: pixelRatio,
+      alpha: transparent,
+      canvas
+    });
     const gl = renderer.gl;
     this.renderer = renderer;
-    target.appendChild(gl.canvas);
+    if (!canvas) {
+      target.appendChild(gl.canvas);
+    }
     if (!transparent) {
       gl.clearColor(0, 0, 0, 1);
     }
 
     // Camera & Scene
-    const camera = new Camera(gl, { near: 0.1, far: 1000 });
-    camera.position.set(1, 1, 5);
+    const camera = new Camera(gl, { fov: CAMERA_FOV, near: CAMERA_NEAR, far: CAMERA_FAR });
+    camera.position.set(1, 1, 15);
     this.camera = camera;
     this.scene = new Transform();
+    camera.lookAt(this.scene.position);
 
     // Features
     if (orbitControls) {
@@ -54,9 +67,8 @@ export default class OGLApp {
     }
 
     // Mouse Events
-    const { canvas } = gl;
-    canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
-    canvas.addEventListener('click', this.onMouseClick.bind(this));
+    gl.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+    gl.canvas.addEventListener('click', this.onMouseClick.bind(this));
   }
 
   resize(width, height) {
